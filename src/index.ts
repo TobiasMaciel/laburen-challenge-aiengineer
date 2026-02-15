@@ -56,8 +56,8 @@ app.get('/', (c) => {
             'GET /products?search={term}',
             'POST /cart',
             'GET /cart/:id',
-            'POST /cart/:id/items',
-            'DELETE /cart/:id/items/:productId'
+            'POST /cart/items',
+            'DELETE /cart/items'
         ]
     });
 });
@@ -109,11 +109,16 @@ app.post('/cart', async (c) => {
 });
 
 /**
- * GET /cart/:id
+ * GET /cart
  * Obtiene el contenido actual del carrito con subtotales.
+ * Query Param: ?id=...
  */
-app.get('/cart/:id', async (c) => {
-    const cartId = c.req.param('id');
+app.get('/cart', async (c) => {
+    const cartId = c.req.query('id');
+
+    if (!cartId) {
+        return c.json({ error: 'Falta cart ID (?id=...)' }, 400);
+    }
 
     const query = `
         SELECT 
@@ -145,18 +150,18 @@ app.get('/cart/:id', async (c) => {
 });
 
 /**
- * POST /cart/:id/items
+ * POST /cart/items
  * Agrega un producto o actualiza su cantidad (Upsert lógico).
- * Body: { "product_id": 1, "quantity": 1 }
+ * Body: { "cart_id": "...", "product_id": 1, "quantity": 1 }
  */
-app.post('/cart/:id/items', async (c) => {
-    const cartId = c.req.param('id');
-    const body = await c.req.json<CartItem>();
+app.post('/cart/items', async (c) => { // URL genérica
+    const body = await c.req.json<CartItem & { cart_id: string }>();
 
-    if (!body.product_id) {
-        return c.json({ error: 'Falta product_id' }, 400);
+    if (!body.cart_id || !body.product_id) {
+        return c.json({ error: 'Faltan datos (cart_id o product_id)' }, 400);
     }
 
+    const cartId = body.cart_id;
     const qty = body.quantity || 1;
 
     try {
@@ -197,17 +202,21 @@ app.post('/cart/:id/items', async (c) => {
 });
 
 /**
- * DELETE /cart/:id/items/:productId
+ * DELETE /cart/items
  * Elimina un producto del carrito.
+ * Body: { "cart_id": "...", "product_id": ... }
  */
-app.delete('/cart/:id/items/:productId', async (c) => {
-    const cartId = c.req.param('id');
-    const productId = c.req.param('productId');
+app.delete('/cart/items', async (c) => {
+    const body = await c.req.json<{ cart_id: string, product_id: number }>();
+
+    if (!body.cart_id || !body.product_id) {
+        return c.json({ error: 'Faltan datos (cart_id o product_id)' }, 400);
+    }
 
     try {
         const res = await c.env.DB.prepare(
             'DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?'
-        ).bind(cartId, productId).run();
+        ).bind(body.cart_id, body.product_id).run();
 
         if (res.meta.changes > 0) {
             return c.json({ message: 'Producto eliminado del carrito' });
@@ -266,6 +275,18 @@ app.get('/manifest', (c) => {
                         cart_id: { type: "string", description: "ID del carrito a consultar" }
                     },
                     required: ["cart_id"]
+                }
+            },
+            {
+                name: "remove_from_cart",
+                description: "Elimina un producto del carrito",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        cart_id: { type: "string", description: "ID del carrito" },
+                        product_id: { type: "integer", description: "ID del producto a eliminar" }
+                    },
+                    required: ["cart_id", "product_id"]
                 }
             }
         ]
