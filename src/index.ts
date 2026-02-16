@@ -109,30 +109,54 @@ app.get('/products', async (c) => {
 
 /**
  * POST /cart
- * Crea un nuevo carrito vacío.
- * Retorna: { cart_id: string }
+ * Crea un nuevo carrito o recupera uno existente activo (Idempotencia).
+ * Body: { "user_phone": "..." }
  */
 app.post('/cart', async (c) => {
     let body: { user_phone?: string } = {};
     try {
         body = await c.req.json();
     } catch {
-        // Body vacío o inválido, seguimos sin teléfono
+        // Body vacío
     }
 
-    const cartId = crypto.randomUUID();
     let phone = body.user_phone ? String(body.user_phone) : null;
 
-    // Limpieza: si viene como "12345.0", lo dejamos en "12345"
+    // Limpieza de teléfono
     if (phone && phone.includes('.')) {
         phone = phone.split('.')[0];
     }
 
+    // 1. INTENTO DE RECUPERACIÓN (Solo si hay teléfono)
+    if (phone) {
+        try {
+            const existingCart = await c.env.DB.prepare(
+                "SELECT id FROM carts WHERE user_phone = ? AND status = 'active' LIMIT 1"
+            ).bind(phone).first<{ id: string }>();
+
+            if (existingCart) {
+                return c.json({
+                    cart_id: existingCart.id,
+                    message: 'Carrito activo recuperado',
+                    instructions: 'Usa este ID, no crees otro.'
+                }, 200);
+            }
+        } catch (e: any) {
+            console.error('Error buscando carrito existente:', e);
+            // Si falla la búsqueda, seguimos para crear uno nuevo
+        }
+    }
+
+    // 2. CREACIÓN DE NUEVO CARRITO
+    const cartId = crypto.randomUUID();
     try {
-        await c.env.DB.prepare('INSERT INTO carts (id, user_phone) VALUES (?, ?)').bind(cartId, phone).run();
+        await c.env.DB.prepare(
+            'INSERT INTO carts (id, user_phone, status) VALUES (?, ?, ?)'
+        ).bind(cartId, phone, 'active').run();
+
         return c.json({
             cart_id: cartId,
-            message: 'Carrito creado exitosamente',
+            message: 'Carrito nuevo creado exitosamente',
             instructions: 'Usa este ID para futuras operaciones.'
         }, 201);
     } catch (e: any) {
