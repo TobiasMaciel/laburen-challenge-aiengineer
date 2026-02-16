@@ -12,7 +12,8 @@ CREATE TABLE products (
 CREATE TABLE carts (
     id TEXT PRIMARY KEY, 
     user_phone TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status TEXT DEFAULT 'active'
 );
 
 CREATE TABLE cart_items (
