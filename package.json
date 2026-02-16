@@ -1,0 +1,32 @@
+{
+  "name": "laburen-challenge-aiengineer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "wrangler dev",
+    "dev:remote": "wrangler dev --remote",
+    "deploy": "wrangler deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TobiasMaciel/laburen-challenge-aiengineer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TobiasMaciel/laburen-challenge-aiengineer/issues"
+  },
+  "homepage": "https://github.com/TobiasMaciel/laburen-challenge-aiengineer#readme",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260214.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.65.0"
+  },
+  "dependencies": {
+    "hono": "^4.11.9"
+  }
+}
