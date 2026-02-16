@@ -103,7 +103,12 @@ app.post('/cart', async (c) => {
     }
 
     const cartId = crypto.randomUUID();
-    const phone = body.user_phone || null;
+    let phone = body.user_phone ? String(body.user_phone) : null;
+
+    // Limpieza: si viene como "12345.0", lo dejamos en "12345"
+    if (phone && phone.includes('.')) {
+        phone = phone.split('.')[0];
+    }
 
     try {
         await c.env.DB.prepare('INSERT INTO carts (id, user_phone) VALUES (?, ?)').bind(cartId, phone).run();
