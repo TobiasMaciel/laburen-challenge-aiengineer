@@ -1,3 +1,26 @@
+-- CATÁLOGO DISPONIBLE (RESUMEN ACTUALIZADO) --
+
+SOMOS UNA TIENDA DE ROPA (INDUMENTARIA) EXCLUSIVAMENTE.
+Nuestras categorías principales son: DEPORTIVO, CASUAL y FORMAL.
+
+LO QUE SÍ VENDEMOS (Tipos de prenda):
+1. **CHAQUETAS** (Camperas): Variedad de colores (Amarillo, Azul, Gris, Rojo, Negro, Blanco). Precios entre $400 y $1500.
+2. **PANTALONES**: Jeans y de tela. (Verde, Gris, Rojo, Azul, Negro, Blanco). Talles desde S a XXL.
+3. **CAMISETAS** (Remeras/Poleras): Manga corta. (Blanco, Negro, Azul, Rojo, Amarillo, Verde).
+4. **CAMISAS**: Para uso diario o formal. (Verde, Blanco, Rojo, Gris, Azul).
+5. **SUDADERAS** (Buzos/Hoodies): Abrigos ligeros.
+6. **FALDAS** (Polleras): Cortas y largas.
+
+LO QUE NO VENDEMOS (Ni busques):
+- Zapatos, Zapatillas, Calzado en general.
+- Vestidos (Enterizos).
+- Accesorios (Cinturones, Joyas, Sombreros).
+- Ropa interior o trajes de baño.
+
+TIP DE VENTA:
+Si te piden "Algo para una fiesta", ofrece: Camisas Formales, Pantalones de vestir o Faldas elegantes.
+Si te piden "Algo para el gym", ofrece: Camisetas Deportivas, Sudaderas o Pantalones cómodos.
+
 -- POLÍTICAS DE LABUREN SHOP --
 ENVIOS:
 - Gratis en compras superiores a $100 USD.
