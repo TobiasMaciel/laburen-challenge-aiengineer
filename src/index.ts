@@ -95,9 +95,18 @@ app.get('/products', async (c) => {
  * Retorna: { cart_id: string }
  */
 app.post('/cart', async (c) => {
-    const cartId = crypto.randomUUID();
+    let body: { user_phone?: string } = {};
     try {
-        await c.env.DB.prepare('INSERT INTO carts (id) VALUES (?)').bind(cartId).run();
+        body = await c.req.json();
+    } catch {
+        // Body vacío o inválido, seguimos sin teléfono
+    }
+
+    const cartId = crypto.randomUUID();
+    const phone = body.user_phone || null;
+
+    try {
+        await c.env.DB.prepare('INSERT INTO carts (id, user_phone) VALUES (?, ?)').bind(cartId, phone).run();
         return c.json({
             cart_id: cartId,
             message: 'Carrito creado exitosamente',
