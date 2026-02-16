@@ -53,7 +53,7 @@ app.get('/', (c) => {
     return c.json({
         messsage: 'Laburen AI Agent API is running 🚀',
         endpoints: [
-            'GET /products?search={term}',
+            'GET /products?search={term}&id={id}',
             'POST /cart',
             'GET /cart/:id',
             'POST /cart/items',
@@ -64,13 +64,31 @@ app.get('/', (c) => {
 
 /**
  * GET /products
- * Busca productos por nombre, descripción o categoría.
- * Query Params: ?search=zapatilla
+ * Endpoint maestro para obtener productos.
+ * - Sin params: Devuelve los primeros 10.
+ * - ?search=... : Busca por texto (nombre, desc, cat).
+ * - ?id=... : Devuelve un producto específico por ID (detalle).
  */
 app.get('/products', async (c) => {
     const search = c.req.query('search') || '';
+    const id = c.req.query('id');
 
+    // 1. Caso búsqueda por ID específico
+    if (id) {
+        try {
+            const product = await c.env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(id).first<Product>();
+            if (!product) {
+                return c.json({ error: 'Producto no encontrado' }, 404);
+            }
+            return c.json(product);
+        } catch (e: any) {
+            return c.json({ error: e.message }, 500);
+        }
+    }
+
+    // 2. Caso búsqueda general o listado default
     let query = 'SELECT * FROM products';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let params: any[] = [];
 
     if (search) {
@@ -260,6 +278,17 @@ app.get('/manifest', (c) => {
                     properties: {
                         search: { type: "string", description: "Término de búsqueda (ej: 'zapatillas')" }
                     }
+                }
+            },
+            {
+                name: "get_product_details",
+                description: "Obtiene información detallada de un producto específico",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        id: { type: "integer", description: "ID del producto a consultar" }
+                    },
+                    required: ["id"]
                 }
             },
             {
