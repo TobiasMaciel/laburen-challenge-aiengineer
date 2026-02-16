@@ -236,19 +236,20 @@ app.post('/cart/items', async (c) => { // URL genérica
 /**
  * DELETE /cart/items
  * Elimina un producto del carrito.
- * Body: { "cart_id": "...", "product_id": ... }
+ * Query Params: ?cart_id=...&product_id=...
  */
 app.delete('/cart/items', async (c) => {
-    const body = await c.req.json<{ cart_id: string, product_id: number }>();
+    const cartId = c.req.query('cart_id');
+    const productId = c.req.query('product_id');
 
-    if (!body.cart_id || !body.product_id) {
-        return c.json({ error: 'Faltan datos (cart_id o product_id)' }, 400);
+    if (!cartId || !productId) {
+        return c.json({ error: 'Faltan datos (cart_id o product_id en query params)' }, 400);
     }
 
     try {
         const res = await c.env.DB.prepare(
             'DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?'
-        ).bind(body.cart_id, body.product_id).run();
+        ).bind(cartId, productId).run();
 
         if (res.meta.changes > 0) {
             return c.json({ message: 'Producto eliminado del carrito' });
