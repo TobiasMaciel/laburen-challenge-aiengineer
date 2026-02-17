@@ -73,10 +73,11 @@ app.get('/products', async (c) => {
     const search = c.req.query('search') || '';
     const id = c.req.query('id');
 
-    // 1. Caso búsqueda por ID específico
+    // 1. Caso búsqueda por ID específico (Optimizado)
     if (id) {
         try {
-            const product = await c.env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(id).first<Product>();
+            // SOLO columnas necesarias (evita Select *)
+            const product = await c.env.DB.prepare('SELECT id, name, price, description, size, color, stock, category FROM products WHERE id = ?').bind(id).first<Product>();
             if (!product) {
                 return c.json({ error: 'Producto no encontrado' }, 404);
             }
@@ -86,22 +87,22 @@ app.get('/products', async (c) => {
         }
     }
 
-    // 2. Caso búsqueda general o listado default
-    let query = 'SELECT * FROM products';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // 2. Caso búsqueda general
+    let query = 'SELECT id, name, price, category FROM products'; // ULTRA-MINIMALISTA
     let params: any[] = [];
 
     if (search) {
-        query += ' WHERE name LIKE ? OR description LIKE ? OR category LIKE ?';
+        // Usamos LIKE simple. Para Full Text Search real se necesitaría D1 FTS (más complejo)
+        query += ' WHERE name LIKE ? OR category LIKE ?';
         const term = `%${search}%`;
-        params = [term, term, term];
+        params = [term, term];
     }
 
-    query += ' LIMIT 10'; // Límite para no sobrecargar al LLM
+    query += ' LIMIT 3'; // Solo 3 resultados para que el LLM responda volando
 
     try {
         const { results } = await c.env.DB.prepare(query).bind(...params).all<Product>();
-        return c.json(results);
+        return c.json({ products: results });
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }
@@ -113,23 +114,20 @@ app.get('/products', async (c) => {
  * Body: { "user_phone": "..." }
  */
 app.post('/cart', async (c) => {
-    let body: { user_phone?: string } = {};
-    try {
-        body = await c.req.json();
-    } catch {
-        // Body vacío
-    }
+    // Definir tipo esperado del body
+    const body = await c.req.json<{ user_phone?: string }>().catch(() => ({ user_phone: undefined }));
 
     let phone = body.user_phone ? String(body.user_phone) : null;
 
-    // Limpieza de teléfono
+    // Limpieza de teléfono (Micro-optimización: Regex es más seguro para quitar todo lo que no sea numérico si se quisiera, pero manteniendo split por ahora para compatibilidad)
     if (phone && phone.includes('.')) {
         phone = phone.split('.')[0];
     }
 
-    // 1. INTENTO DE RECUPERACIÓN (Solo si hay teléfono)
-    if (phone) {
-        try {
+    try {
+        // 1. INTENTO DE RECUPERACIÓN (Solo si hay teléfono)
+        // El índice (user_phone, status) hace esto instantáneo.
+        if (phone) {
             const existingCart = await c.env.DB.prepare(
                 "SELECT id FROM carts WHERE user_phone = ? AND status = 'active' LIMIT 1"
             ).bind(phone).first<{ id: string }>();
@@ -141,15 +139,12 @@ app.post('/cart', async (c) => {
                     instructions: 'Usa este ID, no crees otro.'
                 }, 200);
             }
-        } catch (e: any) {
-            console.error('Error buscando carrito existente:', e);
-            // Si falla la búsqueda, seguimos para crear uno nuevo
         }
-    }
 
-    // 2. CREACIÓN DE NUEVO CARRITO
-    const cartId = crypto.randomUUID();
-    try {
+        // 2. CREACIÓN DE NUEVO CARRITO
+        const cartId = crypto.randomUUID();
+
+        // La inserción es rápida.
         await c.env.DB.prepare(
             'INSERT INTO carts (id, user_phone, status) VALUES (?, ?, ?)'
         ).bind(cartId, phone, 'active').run();
@@ -159,6 +154,7 @@ app.post('/cart', async (c) => {
             message: 'Carrito nuevo creado exitosamente',
             instructions: 'Usa este ID para futuras operaciones.'
         }, 201);
+
     } catch (e: any) {
         return c.json({ error: 'Error creando carrito: ' + e.message }, 500);
     }
@@ -210,46 +206,40 @@ app.get('/cart', async (c) => {
  * Agrega un producto o actualiza su cantidad (Upsert lógico).
  * Body: { "cart_id": "...", "product_id": 1, "quantity": 1 }
  */
-app.post('/cart/items', async (c) => { // URL genérica
+app.post('/cart/items', async (c) => {
     const body = await c.req.json<CartItem & { cart_id: string }>();
 
     if (!body.cart_id || !body.product_id) {
         return c.json({ error: 'Faltan datos (cart_id o product_id)' }, 400);
     }
 
-    const cartId = body.cart_id;
+    const { cart_id, product_id } = body;
     const qty = body.quantity || 1;
 
     try {
-        // 1. Verificar producto y stock
-        const product = await c.env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(body.product_id).first<Product>();
+        // 1. Verificar producto (SOLO columnas necesarias)
+        const product = await c.env.DB.prepare('SELECT id, name, price FROM products WHERE id = ?').bind(product_id).first<Product>();
 
         if (!product) {
             return c.json({ error: 'Producto no encontrado' }, 404);
         }
 
-        // 2. Verificar si ya existe en el carrito
-        const existingItem = await c.env.DB.prepare(
-            'SELECT quantity FROM cart_items WHERE cart_id = ? AND product_id = ?'
-        ).bind(cartId, body.product_id).first<{ quantity: number }>();
+        // 2. UPSERT (Insertar o Actualizar en un solo paso) - Requiere Unique Index
+        // Si ya existe (cart_id, product_id), sumamos la cantidad. Si no, insertamos.
+        await c.env.DB.prepare(`
+            INSERT INTO cart_items (cart_id, product_id, quantity) 
+            VALUES (?, ?, ?)
+            ON CONFLICT(cart_id, product_id) 
+            DO UPDATE SET quantity = quantity + ?
+        `).bind(cart_id, product_id, qty, qty).run();
 
-        if (existingItem) {
-            // UPDATE: Sumar cantidad
-            const newQty = existingItem.quantity + qty;
-            await c.env.DB.prepare(
-                'UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ?'
-            ).bind(newQty, cartId, body.product_id).run();
-        } else {
-            // INSERT: Nuevo item
-            await c.env.DB.prepare(
-                'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)'
-            ).bind(cartId, body.product_id, qty).run();
-        }
-
+        // --- OPTIMIZACIÓN DE RESPUESTA EXTREMA ---
+        // Eliminamos el recálculo de totales (SELECT SUM...) que puede causar delay.
+        // Respondemos rápido para que el Bot no haga timeout.
         return c.json({
-            message: 'Producto agregado/actualizado',
-            product: product.name,
-            quantity_added: qty
+            message: 'Producto Agregado',
+            product_name: product.name
+            // Si el bot necesita el total, que llame a get_cart
         });
 
     } catch (e: any) {
@@ -285,8 +275,6 @@ app.delete('/cart/items', async (c) => {
         return c.json({ error: e.message }, 500);
     }
 });
-
-
 
 /**
  * GET /manifest
