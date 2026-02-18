@@ -4,6 +4,15 @@
 
 > **Desafío Técnico AI Engineer** - Implementación de un Agente de Ventas Transaccional integrando **LLMs**, **CRM (Chatwoot)** y **WhatsApp**.
 
+## 📱 Interactuar con el Agente
+¡Escanea el código para hablar con nuestro asistente de ventas!
+
+<a href="https://api.whatsapp.com/send?phone=5491178277213&text=Buenas%20%F0%9F%91%8B%2C%20estoy%20buscando%20ropa.">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://api.whatsapp.com/send?phone=5491178277213%26text=Buenas%20%F0%9F%91%8B%2C%20estoy%20buscando%20ropa." alt="QR Code WhatsApp" />
+</a>
+
+[**➡️ Chatear con el Agente**](https://api.whatsapp.com/send?phone=5491178277213&text=Buenas%20%F0%9F%91%8B%2C%20estoy%20buscando%20ropa.)
+
 Este repositorio aloja el **Model Context Protocol (MCP)** Backend desarrollado sobre **Cloudflare Workers**. Proporciona las herramientas (*tools*) necesarias para que el Agente de IA gestione inventario, carritos de compra y lógica de negocio.
 
 ---
@@ -90,6 +99,11 @@ Este proyecto cuenta con un workflow automatizado en GitHub Actions que asegura 
 ├── wrangler.toml          # Configuración de Infraestructura (IaC)
 └── package.json           # Dependencias y Scripts
 ```
+
+
+---
+
+
 
 ---
 
