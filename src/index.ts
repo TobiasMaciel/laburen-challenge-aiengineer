@@ -77,7 +77,7 @@ app.get('/products', async (c) => {
     if (id) {
         try {
             // SOLO columnas necesarias (evita Select *)
-            const product = await c.env.DB.prepare('SELECT id, name, price, description, size, color, stock, category FROM products WHERE id = ?').bind(id).first<Product>();
+            const product = await c.env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(id).first<Product>();
             if (!product) {
                 return c.json({ error: 'Producto no encontrado' }, 404);
             }
@@ -88,20 +88,34 @@ app.get('/products', async (c) => {
     }
 
     // 2. Caso búsqueda general
-    let query = 'SELECT id, name, price FROM products'; // ULTRA-MINIMALISTA (Sin categoría)
+    let query = 'SELECT * FROM products'; // FULL CONTEXTO
     let params: any[] = [];
+
+    // Paginación
+    const page = Number(c.req.query('page') || 1);
+    const limit = Number(c.req.query('limit') || 3);
+    const offset = (page - 1) * limit;
 
     if (search) {
         query += ' WHERE name LIKE ? OR category LIKE ?';
         const term = `%${search}%`;
-        params = [term, term];
+        params.push(term, term);
     }
 
-    query += ' LIMIT 3'; // Solo 3 resultados
+    // Ordenar para consistencia
+    query += ' ORDER BY id ASC';
+
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset);
 
     try {
         const { results } = await c.env.DB.prepare(query).bind(...params).all<Product>();
-        return c.json({ products: results });
+        return c.json({
+            products: results,
+            page,
+            limit,
+            has_more: results.length === limit // flag útil
+        });
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }
@@ -400,7 +414,8 @@ app.get('/manifest', (c) => {
                 parameters: {
                     type: "object",
                     properties: {
-                        search: { type: "string", description: "Término de búsqueda" }
+                        search: { type: "string", description: "Término de búsqueda" },
+                        page: { type: "integer", description: "Página de resultados (1, 2, 3...). Úsalo si el usuario pide ver más opciones." }
                     }
                 }
             },
