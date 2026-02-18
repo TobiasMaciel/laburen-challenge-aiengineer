@@ -134,9 +134,10 @@ app.post('/cart/close', async (c) => {
     try {
         const body = await c.req.json<{ cart_id?: string, user_phone?: string }>();
         cart_id = body.cart_id || c.req.query('cart_id');
-        user_phone = body.user_phone;
+        user_phone = body.user_phone || c.req.query('user_phone');
     } catch (e) {
         cart_id = c.req.query('cart_id');
+        user_phone = c.req.query('user_phone');
     }
 
     // Fallback: Buscar carrito activo por teléfono si falta ID
