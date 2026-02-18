@@ -63,6 +63,18 @@ La calidad del agente se valida mediante escenarios de prueba de "Caja Negra".
     *   **Protocolo:** Validación de saludo obligatorio.
     *   **Flujo Crítico:** Ciclo completo de compra (Crear -> Agregar -> Cerrar).
 
+
+---
+
+## CI/CD Pipeline
+
+Este proyecto cuenta con un workflow automatizado en GitHub Actions que asegura la robustez del código antes de cada despliegue.
+
+1.  **Validación de Tipos (Type Safety):** Ejecuta `tsc --noEmit` para garantizar que no existan errores de compilación o tipos en `index.ts`.
+2.  **Despliegue Automático:** Si la validación es exitosa, utiliza `wrangler-action` para desplegar la nueva versión a Cloudflare Workers.
+
+
+
 ---
 
 ## Estructura del Proyecto
