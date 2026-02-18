@@ -112,8 +112,8 @@ El **Model Context Protocol (MCP)** expone las siguientes capacidades al Agente:
     *   **Función:** Lista el contenido actual del carrito y el subtotal.
 
 *   **`POST /cart/close`**
-    *   **Query/Body:** `cart_id`
-    *   **Función:** Finaliza la compra, marca el carrito como cerrado y genera el ticket final.
+    *   **Query/Body:** `cart_id` (Opcional), `user_phone` (Opcional).
+    *   **Función:** Finaliza la compra. Si se omite `cart_id`, busca el carrito activo asociado al `user_phone`.
 
 ### Gestión de Items
 *   **`POST /cart/items`** (Agregar)
