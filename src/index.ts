@@ -58,7 +58,7 @@ app.get('/products', async (c) => {
     let params: any[] = [];
 
     const page = Number(c.req.query('page') || 1);
-    const limit = Number(c.req.query('limit') || 3);
+    const limit = Number(c.req.query('limit') || 4);
     const offset = (page - 1) * limit;
 
     if (search) {
