@@ -1,16 +1,14 @@
-# 🤖 Laburen AI Sales Agent (MCP)
+# Prueba tecnica Laburen - IA engineer
 
-![Status](https://img.shields.io/badge/status-stable-green)
 ![Tech](https://img.shields.io/badge/stack-Cloudflare_Workers_%7C_Hono_%7C_D1-orange)
-![License](https://img.shields.io/badge/license-MIT-blue)
 
-> **Desafío Técnico AI Engineer** - Implementación de referencia para un Agente de Ventas Transaccional integrando **LLMs (GPT-5)**, **CRM (Chatwoot)** y **WhatsApp**.
+> **Desafío Técnico AI Engineer** - Implementación de un Agente de Ventas Transaccional integrando **LLMs**, **CRM (Chatwoot)** y **WhatsApp**.
 
-Este repositorio aloja el **Model Context Protocol (MCP)** Backend desarrollado sobre **Cloudflare Workers**. Proporciona las herramientas (*tools*) necesarias para que el Agente de IA gestione inventario, carritos de compra y lógica de negocio con persistencia en el Edge.
+Este repositorio aloja el **Model Context Protocol (MCP)** Backend desarrollado sobre **Cloudflare Workers**. Proporciona las herramientas (*tools*) necesarias para que el Agente de IA gestione inventario, carritos de compra y lógica de negocio.
 
 ---
 
-## ⚡ Características Técnicas
+## Características Técnicas
 
 *   **Arquitectura Serverless:** Desplegado en Cloudflare Workers para latencia mínima global.
 *   **Persistencia en el Edge:** Base de datos **D1 (SQLite)** distribuida para gestión de stock y sesiones.
@@ -19,7 +17,7 @@ Este repositorio aloja el **Model Context Protocol (MCP)** Backend desarrollado 
 
 ---
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 El sistema actúa como el nexo lógico entre la capa de conversación y los datos.
 
@@ -29,19 +27,18 @@ Para ver el diagrama de flujo detallado y la especificación de la API, consulte
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnológico
 
-| Componente    | Tecnología                | Justificación                                                 |
-| ------------- | ------------------------- | ------------------------------------------------------------- |
-| **Runtime**   | Cloudflare Workers        | Ejecución V8 aislada, sin cold starts, coste cero en reposo.  |
-| **Framework** | [Hono](https://hono.dev/) | Estándar moderno, tipado estricto, <15kb footprint.           |
-| **Database**  | Cloudflare D1             | SQLite en el edge, consistencia fuerte y backups automáticos. |
-| **Language**  | TypeScript                | Tipado estático para robustez en producción.                  |
-
+| Componente    | Tecnología                |
+| ------------- | ------------------------- |
+| **Runtime**   | Cloudflare Workers        |
+| **Framework** | [Hono](https://hono.dev/) |
+| **Database**  | Cloudflare D1             |
+| **Language**  | TypeScript                |
 
 ---
 
-## 🔌 Integración con Laburen Dashboard
+## Integración con Laburen Dashboard
 
 Para conectar este MCP con el Agente en Laburen, configure las siguientes **Tools (Herramientas)** utilizando la URL base obtenida:
 
@@ -56,20 +53,19 @@ Para conectar este MCP con el Agente en Laburen, configure las siguientes **Tool
 
 ---
 
-## ✅ Testing y QA
+## Testing y QA
 
 La calidad del agente se valida mediante escenarios de prueba de "Caja Negra".
 
 *   **Test Suite:** [`tests/test_cases.md`](./tests/test_cases.md)
 *   Incluye pruebas para:
-    *   🛡️ **Guardrails:** Intentos de jailbreak y temas prohibidos.
-    *   👋 **Protocolo:** Validación de saludo obligatorio.
-    *   🛒 **Flujo Crítico:** Ciclo completo de compra (Crear -> Agregar -> Cerrar).
-
+    *   **Guardrails:** Intentos de jailbreak y temas prohibidos.
+    *   **Protocolo:** Validación de saludo obligatorio.
+    *   **Flujo Crítico:** Ciclo completo de compra (Crear -> Agregar -> Cerrar).
 
 ---
 
-## 📂 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```bash
 /
@@ -85,4 +81,4 @@ La calidad del agente se valida mediante escenarios de prueba de "Caja Negra".
 
 ---
 
-**Author:** Tobías Maciel  
+**Author:** Tobías Maciel
