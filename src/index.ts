@@ -128,16 +128,27 @@ app.post('/cart', async (c) => {
  * Query: ?cart_id=... (Prioridad) o Body { cart_id }
  */
 app.post('/cart/close', async (c) => {
-    let cart_id = c.req.query('cart_id');
+    let cart_id: string | undefined;
+    let user_phone: string | undefined;
 
-    if (!cart_id) {
-        try {
-            const body = await c.req.json<{ cart_id: string }>();
-            cart_id = body.cart_id;
-        } catch (e) { /* Ignore */ }
+    try {
+        const body = await c.req.json<{ cart_id?: string, user_phone?: string }>();
+        cart_id = body.cart_id || c.req.query('cart_id');
+        user_phone = body.user_phone;
+    } catch (e) {
+        cart_id = c.req.query('cart_id');
     }
 
-    if (!cart_id) return c.json({ error: 'Falta cart_id' }, 400);
+    // Fallback: Buscar carrito activo por teléfono si falta ID
+    if (!cart_id && user_phone) {
+        const activeCart = await c.env.DB.prepare(
+            "SELECT id FROM carts WHERE user_phone = ? AND status = 'active' LIMIT 1"
+        ).bind(user_phone).first<{ id: string }>();
+
+        if (activeCart) cart_id = activeCart.id;
+    }
+
+    if (!cart_id) return c.json({ error: 'Falta cart_id o user_phone para identificar el carrito.' }, 400);
 
     try {
         const items = await c.env.DB.prepare(`
