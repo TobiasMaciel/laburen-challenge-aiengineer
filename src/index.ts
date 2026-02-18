@@ -112,23 +112,81 @@ app.get('/products', async (c) => {
  * Crea o recupera carrito.
  */
 app.post('/cart', async (c) => {
-    const body = await c.req.json<{ user_phone?: string }>().catch(() => ({ user_phone: undefined }));
-    let phone = body.user_phone ? String(body.user_phone).split('.')[0] : null;
+    const body = await c.req.json<{ user_phone?: string }>();
+    const user_phone = body.user_phone;
+
+    // 1. Buscar carrito ACTIVO existente para este usuario
+    if (user_phone) {
+        const existingCart = await c.env.DB.prepare(
+            "SELECT id FROM carts WHERE user_phone = ? AND status = 'active' ORDER BY created_at DESC LIMIT 1"
+        ).bind(user_phone).first<{ id: string }>();
+
+        if (existingCart) {
+            return c.json({
+                cart_id: existingCart.id,
+                message: 'Carrito activo recuperado',
+                status: 'active'
+            });
+        }
+    }
+
+    // 2. Crear nuevo carrito
+    const newCartId = crypto.randomUUID();
+    try {
+        await c.env.DB.prepare(
+            "INSERT INTO carts (id, user_phone, status) VALUES (?, ?, 'active')"
+        ).bind(newCartId, user_phone || null).run();
+
+        return c.json({
+            cart_id: newCartId,
+            message: 'Nuevo carrito creado',
+            status: 'active'
+        }, 201);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+/**
+ * POST /cart/close
+ * Cierra el carrito (status='closed') y devuelve resumen final.
+ * Query Param: ?cart_id=...
+ */
+app.post('/cart/close', async (c) => {
+    let cart_id = c.req.query('cart_id');
+
+    // Fallback: intentar leer del body si no vino en query
+    if (!cart_id) {
+        try {
+            const body = await c.req.json<{ cart_id: string }>();
+            cart_id = body.cart_id;
+        } catch (e) {
+            // Body vacío o inválido, ignorar
+        }
+    }
+
+    if (!cart_id) return c.json({ error: 'Falta cart_id (query param o body)' }, 400);
 
     try {
-        if (phone) {
-            const existingCart = await c.env.DB.prepare(
-                "SELECT id FROM carts WHERE user_phone = ? AND status = 'active' LIMIT 1"
-            ).bind(phone).first<{ id: string }>();
+        // 1. Obtener items para el resumen final
+        const items = await c.env.DB.prepare(`
+            SELECT p.name, ci.quantity, p.price, (ci.quantity * p.price) as subtotal
+            FROM cart_items ci
+            JOIN products p ON ci.product_id = p.id
+            WHERE ci.cart_id = ?
+        `).bind(cart_id).all<any>();
 
-            if (existingCart) return c.json({ cart_id: existingCart.id, status: 'recovered' });
-        }
+        const total = items.results.reduce((sum, item) => sum + item.subtotal, 0);
 
-        const cartId = crypto.randomUUID();
-        await c.env.DB.prepare('INSERT INTO carts (id, user_phone, status) VALUES (?, ?, ?)').bind(cartId, phone, 'active').run();
+        // 2. Cerrar el carrito
+        await c.env.DB.prepare("UPDATE carts SET status = 'closed' WHERE id = ?").bind(cart_id).run();
 
-        return c.json({ cart_id: cartId, status: 'created' }, 201);
-
+        return c.json({
+            status: 'closed',
+            message: 'Compra finalizada',
+            items: items.results,
+            total: total
+        });
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }
@@ -365,6 +423,17 @@ app.get('/manifest', (c) => {
                     properties: {
                         user_phone: { type: "string", description: "Teléfono del usuario (opcional)" }
                     }
+                }
+            },
+            {
+                name: "close_cart",
+                description: "Cierra el carrito actual, finaliza la compra y devuelve el resumen. Usar cuando el usuario confirma.",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        cart_id: { type: "string", description: "ID del carrito a cerrar" }
+                    },
+                    required: ["cart_id"]
                 }
             },
             {
